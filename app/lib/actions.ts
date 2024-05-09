@@ -26,9 +26,13 @@ export async function createInvoice(formData: FormData) {
     const amountInCents = amount * 100; // Convert amount into cents to eliminate JS floating-point errors and ensure greater accuracy
     const date = new Date().toISOString().split('T')[0]; // Create invoice's creation date with "YYY-MM-DD" format
 
-    await sql`
-    INSERT INTO invoices (customer_id, amount, status, date)
-    VALUES (${customerId}, ${amountInCents}, ${status}, ${date})`;
+    try {
+        await sql`
+        INSERT INTO invoices (customer_id, amount, status, date)
+        VALUES (${customerId}, ${amountInCents}, ${status}, ${date})`;
+    } catch(error) {
+        return { message: "Database Error: Failed to Create Invoice" }
+    }
 
     revalidatePath('/dashboard/invoices'); // Clear cache and trigger new request to the server
     redirect('/dashboard/invoices'); // Redirect the user back to the /dashboard/invoices page
@@ -43,17 +47,28 @@ export async function updateInvoice(id: string, formData: FormData) {
    
     const amountInCents = amount * 100; // Convert amount into cents to eliminate JS floating-point errors and ensure greater accuracy
    
-    await sql`
-      UPDATE invoices
-      SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
-      WHERE id = ${id}
-    `;
-   
+    try {
+        await sql`
+        UPDATE invoices
+        SET customer_id = ${customerId}, amount = ${amountInCents}, status = ${status}
+        WHERE id = ${id}
+        `;
+    } catch (error) {
+        return { message: "Database Error: Failed to Update Invoice" }
+    }
+
     revalidatePath('/dashboard/invoices'); // Clear cache and trigger new request to the server
     redirect('/dashboard/invoices'); // Redirect the user back to the /dashboard/invoices page
 }
 
 export async function deleteInvoice(id: string) {
-    await sql`DELETE FROM invoices WHERE id = ${id}`;
-    revalidatePath("/dashboard/invoices"); // Clear cache and trigger new request to the server
+    throw new Error("Failed to Delete Invoice");
+    
+    try {
+        await sql`DELETE FROM invoices WHERE id = ${id}`;
+        revalidatePath("/dashboard/invoices"); // Clear cache and trigger new request to the server
+        return { message: "Deleted Invoice." };
+    } catch (error) {
+        return { message: "Database Error: Failed to Delete Invoice" }
+    }
 }
